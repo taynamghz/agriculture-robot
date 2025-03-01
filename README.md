@@ -1,5 +1,5 @@
-README
-#Agriculture Robot
+
+# Agriculture Robot
 
 The Agriculture Robot is designed to assist farmers by automating tasks, improving efficiency, and reducing manual labor. It features an easy-to-use interface for path setting, real-time monitoring, and remote control via Firebase. The robot uses GPS data and a compass for precise navigation.
 
