@@ -47,11 +47,6 @@ This autonomous agriculture robot combines advanced features from space explorat
 
 ---
 
-## License
-
-This project is open-source and free to use under the MIT License.
-
----
 
 ## Acknowledgments
 
