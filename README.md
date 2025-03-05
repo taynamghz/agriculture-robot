@@ -2,7 +2,8 @@
 # 🌱 Smart Agriculture Robot 🚜  
 Industry 4.0 lab, Prince Sultan University 
 ### A Wi-Fi Controlled Precision Farming Robot  
-![Final Robot](Images/robot.jpg)
+![My Agriculture Robot](robot.JPG)
+
 
  This robot is designed to assist farmers by autonomously navigating fields, collecting data, and providing real-time updates via a web interface. It integrates **ESP8266 for navigation**, **Wi-Fi communication for remote access**, and **sensor-based data collection** to enhance efficiency in farming.  
 
