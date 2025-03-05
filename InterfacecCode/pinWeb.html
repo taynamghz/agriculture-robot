@@ -1,0 +1,310 @@
+<!doctype html>
+<html>
+<head>
+  <title>Manage Pins and Route</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+  <style>
+    #map-canvas {
+      width: 100%;
+      height: 500px;
+      border: 2px solid #056af7;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2), 0 6px 20px rgba(0, 0, 0, 0.19);
+    }
+    .text-center {
+      margin-bottom: 20px;
+    }
+    .info-window {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .info-window button {
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="text-center">
+    <h1>Set Pathway</h1>
+    <h2>Manage Pathway Pins</h2>
+    <hr style="height:2px; border:none; color:#ffffff; background-color:#ffffff; width:35%; margin: 0 auto;">
+  </div>
+  <div class="map-wrapper">
+    <div id="map-canvas"></div>
+  </div>
+  <p id="coordinates" class="text-center"></p>
+  <div class="text-center">
+    <label for="spacing">Desired Spacing (meters):</label>
+    <input type="number" id="spacing" min="1" step="1">
+    <button onclick="generatePathway()">Generate Pathway</button>
+    <button onclick="resetMap()">Reset Map</button>
+    <button onclick="sendPathway()">Send Pathway to Firebase</button>
+    <p id="area-info"></p>
+  </div>
+</div>
+
+<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&key=AIzaSyAqYdwBw4ThI_MSDrQDpUkL9nqHMnfJ2OI"></script>
+<script>
+  var map;
+  var markers = [];
+  var pathwayPins = [];
+  var lineCoords = [];
+  var polygon;
+  var pinCount = 0;
+  
+  function initialize() {
+    // Check if geolocation is supported
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(function(position) {
+        var userLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+  
+        map = new google.maps.Map(document.getElementById('map-canvas'), {
+          center: userLocation, // Center the map around the user's location
+          zoom: 15
+        });
+  
+        google.maps.event.addListener(map, 'click', function(event) {
+          if (pinCount < 4) {
+            placeMarker(event.latLng);
+          } else {
+            alert('You can only place 4 pins to create a rectangle.');
+          }
+        });
+  
+        // Optionally, place a marker at the user's location
+        new google.maps.Marker({
+          position: userLocation,
+          map: map,
+          title: "Your Location",
+          icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
+        });
+  
+      }, function() {
+        // Handle errors
+        handleLocationError(true, map.getCenter());
+      });
+    } else {
+      // Browser doesn't support Geolocation
+      handleLocationError(false, map.getCenter());
+    }
+  }
+  
+  function handleLocationError(browserHasGeolocation, pos) {
+    var infoWindow = new google.maps.InfoWindow;
+    infoWindow.setPosition(pos);
+    infoWindow.setContent(browserHasGeolocation ?
+                          'Error: The Geolocation service failed.' :
+                          'Error: Your browser doesn\'t support geolocation.');
+    infoWindow.open(map);
+  }
+  
+
+function placeMarker(location) {
+  pinCount++;
+  var pinName = pinCount === 1 ? 'HomePosition' : (pinCount === 4 ? 'FinalPin' : 'Pin ' + (pinCount - 1));
+
+  var marker = new google.maps.Marker({
+    position: location,
+    map: map,
+    draggable: true,
+    title: pinName,
+    icon: pinCount === 1 ? 'http://maps.google.com/mapfiles/ms/icons/green-dot.png' :
+      (pinCount === 4 ? 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png' : null),
+    label: pinCount === 1 ? 'H' : (pinCount === 4 ? 'F' : (pinCount - 1).toString())
+  });
+
+  var infoWindow = new google.maps.InfoWindow({
+    content: `<div class="info-window">
+                <h3>${pinName}</h3>
+                <p>Latitude: ${location.lat().toFixed(6)}, Longitude: ${location.lng().toFixed(6)}</p>
+                <button onclick="removeMarker(${pinCount - 1})">Delete Pin</button>
+              </div>`
+  });
+
+  marker.addListener('click', function() {
+    infoWindow.open(map, marker);
+  });
+
+  marker.addListener('dragend', function(event) {
+    updateMarkerInfo(marker, event.latLng);
+    updatePolygon();
+  });
+
+  markers.push(marker);
+  lineCoords.push(location);
+
+  updatePolygon();
+}
+
+function updateMarkerInfo(marker, location) {
+  var pinName = marker.getTitle();
+  document.getElementById('coordinates').innerHTML =
+    `${pinName} - Latitude: ${location.lat().toFixed(6)}, Longitude: ${location.lng().toFixed(6)}`;
+}
+
+function updatePolygon() {
+  if (polygon) {
+    polygon.setMap(null);
+  }
+
+  if (lineCoords.length === 4) {
+    polygon = new google.maps.Polygon({
+      paths: lineCoords,
+      strokeColor: '#FF0000',
+      strokeOpacity: 0.8,
+      strokeWeight: 2,
+      fillColor: '#FF0000',
+      fillOpacity: 0.35
+    });
+    polygon.setMap(map);
+
+    calculateAreaAndDimensions();
+  }
+}
+
+function calculateAreaAndDimensions() {
+  var area = google.maps.geometry.spherical.computeArea(polygon.getPath());
+  var bounds = new google.maps.LatLngBounds();
+  lineCoords.forEach(function(coord) {
+    bounds.extend(coord);
+  });
+
+  var width = google.maps.geometry.spherical.computeDistanceBetween(lineCoords[0], lineCoords[1]);
+  var height = google.maps.geometry.spherical.computeDistanceBetween(lineCoords[0], lineCoords[3]);
+
+  document.getElementById('area-info').innerHTML =
+    `Area: ${area.toFixed(2)} square meters<br>
+     Width: ${width.toFixed(2)} meters<br>
+     Height: ${height.toFixed(2)} meters`;
+}
+
+function generatePathway() {
+  var spacing = parseFloat(document.getElementById('spacing').value);
+  if (isNaN(spacing) || spacing <= 0) {
+    alert('Please enter a valid spacing value.');
+    return;
+  }
+
+  if (lineCoords.length !== 4) {
+    alert('Please place exactly 4 pins to create a rectangle.');
+    return;
+  }
+
+  pathwayPins = []; // Clear previous pathway pins
+
+  var pathCoords = generatePathCoords(spacing);
+  pathCoords.forEach((path) => {
+    var pathway = new google.maps.Polyline({
+      path: path,
+      geodesic: true,
+      strokeColor: '#0000FF', // Pathway lines in blue
+      strokeOpacity: 1.0,
+      strokeWeight: 2
+    });
+    pathway.setMap(map);
+
+    // Add markers at the ends of each path
+    addPathwayPins(path);
+  });
+}
+
+function generatePathCoords(spacing) {
+  var paths = [];
+  var startLatLng = lineCoords[0];
+  var endLatLng = lineCoords[1];
+  var direction = google.maps.geometry.spherical.computeHeading(lineCoords[0], lineCoords[1]);
+  var perpendicularDirection = (direction + 90) % 360;
+
+  var width = google.maps.geometry.spherical.computeDistanceBetween(lineCoords[0], lineCoords[3]);
+  var numLines = Math.floor(width / spacing);
+
+  for (var i = 0; i <= numLines; i++) {
+    var offsetStart = google.maps.geometry.spherical.computeOffset(startLatLng, i * spacing, perpendicularDirection);
+    var offsetEnd = google.maps.geometry.spherical.computeOffset(endLatLng, i * spacing, perpendicularDirection);
+    paths.push([offsetStart, offsetEnd]);
+  }
+
+  // Ensure the last line has pathway pins at the start and end
+  paths.push([lineCoords[2], lineCoords[3]]);
+
+  return paths;
+}
+
+function addPathwayPins(path) {
+  path.forEach((coord) => {
+    var pinName = 'PathPin ' + (pathwayPins.length + 1);
+    var endMarker = new google.maps.Marker({
+      position: coord,
+      map: map,
+      title: pinName,
+      icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+    });
+
+    var infoWindow = new google.maps.InfoWindow({
+      content: `<div class="info-window">
+                  <h3>${pinName}</h3>
+                  <p>Latitude: ${coord.lat().toFixed(6)}, Longitude: ${coord.lng().toFixed(6)}</p>
+                </div>`
+    });
+
+    endMarker.addListener('click', function() {
+      infoWindow.open(map, endMarker);
+    });
+
+    pathwayPins.push({
+      name: pinName,
+      lat: coord.lat(),
+      lng: coord.lng()
+    });
+  });
+}
+
+function resetMap() {
+  markers.forEach(marker => marker.setMap(null));
+  pathwayPins.forEach(pin => pin.setMap(null));
+  if (polygon) polygon.setMap(null);
+  lineCoords = [];
+  markers = [];
+  pathwayPins = [];
+  pinCount = 0;
+}
+
+function sendPathway() {
+  var endpointData = {
+    pins: []
+  };
+
+  pathwayPins.forEach(pin => {
+    endpointData.pins.push(pin);
+  });
+
+  var xhr = new XMLHttpRequest();
+  xhr.open("PUT", "https://gps-esp-c2490-default-rtdb.firebaseio.com/pathway.json", true);
+  xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+xhr.send(JSON.stringify(endpointData));
+
+xhr.onreadystatechange = function() {
+if (xhr.readyState === 4 && xhr.status === 200) {
+alert("Pathway data sent to Firebase successfully!");
+}
+};
+}
+
+function removeMarker(index) {
+markers[index].setMap(null);
+markers.splice(index, 1);
+lineCoords.splice(index, 1);
+pinCount--;
+updatePolygon();
+}
+
+google.maps.event.addDomListener(window, 'load', initialize);
+</script>
+
+</body>
+</html>

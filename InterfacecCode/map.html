@@ -1,0 +1,84 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Realtime GPS Tracker</title>
+    <link rel="stylesheet" href="map.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+  </head>
+  <body>
+      <div class="bg"></div>
+      <div class="bg-others"> 
+        <div class="container">
+          <h1>Realtime GPS Tracker</h1>
+          <center><hr style="height:2px; border:none; color:#ffffff; background-color:#ffffff; width:35%; margin: 0 auto 0 auto;"></center>
+          <p>Agriculture robot</p>  
+          <center><div id="map-canvas"></div></center>
+        </div>
+      </div>
+
+    <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.20.0/firebase-database.js"></script>
+    <script>
+    var map;
+    var mark;
+    var lineCoords = [];
+      
+    function initialize() {
+      map = new google.maps.Map(document.getElementById('map-canvas'), {
+        center: {lat: window.lat, lng: window.lng}, 
+        zoom: 12
+      });
+      mark = new google.maps.Marker({
+        position: {lat: window.lat, lng: window.lng},
+        map: map
+      });
+    }
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCsNaE5VSNpqgJ7UqAYVeiDiHT1QwVB9bs",
+      authDomain: "gps-esp-c2490.firebaseapp.com",
+      databaseURL: "https://gps-esp-c2490-default-rtdb.firebaseio.com/",
+      projectId: "gps-esp-c2490",
+      storageBucket: "gps-esp-c2490.appspot.com",
+      messagingSenderId: "1077483342502",
+      appId: "1:1077483342502:web:228f4a346107bf248fc267",
+      measurementId: "G-07NQ00DBHJ"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    // Set the reference to the root of the database
+    var ref = firebase.database().ref();
+
+    ref.on("value", function(snapshot) {
+      var gps = snapshot.val();
+      if (gps) {
+        console.log("Latitude: " + gps.latitude);
+        console.log("Longitude: " + gps.longitude);
+        window.lat = gps.latitude;
+        window.lng = gps.longitude;
+
+        map.setCenter({lat: window.lat, lng: window.lng});
+        mark.setPosition({lat: window.lat, lng: window.lng});
+
+        lineCoords.push(new google.maps.LatLng(window.lat, window.lng));
+
+        var lineCoordinatesPath = new google.maps.Polyline({
+          path: lineCoords,
+          geodesic: true,
+          strokeColor: '#2E10FF'
+        });
+
+        lineCoordinatesPath.setMap(map);
+      }
+    }, function (error) {
+      console.log("Error: " + error.code);
+    });
+
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&key=AIzaSyAqYdwBw4ThI_MSDrQDpUkL9nqHMnfJ2OI&callback=initialize"></script>
+  </body>
+</html>

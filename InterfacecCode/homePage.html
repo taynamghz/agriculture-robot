@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Robot Navigation</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-image: url('bckgnd2.jpg');
+        background-size: cover;
+        background-position: center;
+        margin: 0;
+      }
+      .container {
+        text-align: center;
+        background-color: rgba(255, 255, 255, 0.8);
+        padding: 50px;
+        border-radius: 10px;
+      }
+      .btn {
+        margin: 20px;
+        padding: 15px 30px;
+        font-size: 18px;
+      }
+      .btn-orange {
+        background-color: #FFA500;
+        color: white;
+        border: none;
+      }
+      .btn-orange:hover {
+        background-color: darkorange;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Robot Navigation</h1>
+      <hr style="height:2px; border:none; color:#333; background-color:#333; width:50%; margin: 20px auto;">
+      <div>
+        <a href="http://127.0.0.1:5500/pinWeb.html" class="btn btn-primary">Set Pathway</a>
+        <a href="http://127.0.0.1:5500/map.html" class="btn btn-orange">Live Track Your Robot</a>
+      </div>
+    </div>
+  </body>
+</html>
